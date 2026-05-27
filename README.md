@@ -15,7 +15,8 @@ zabalený do samostatného nginx kontajnera, pripravený na nasadenie na Raspber
 ## Nasadenie na Raspberry Pi
 
 ```bash
-# 1) naklonuj / aktualizuj repo na RPi
+# 1) naklonuj repo na RPi (všetky projekty držíš v ~/docker)
+cd ~/docker
 git clone https://github.com/pidiman/ryanair-telegram-miniapp.git
 cd ryanair-telegram-miniapp
 
@@ -30,6 +31,7 @@ docker compose up -d --build
 Aktualizácia po zmenách:
 
 ```bash
+cd ~/docker/ryanair-telegram-miniapp
 git pull
 docker compose up -d --build
 ```
