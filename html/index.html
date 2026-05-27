@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="sk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Ryanair Mini App</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --input: #1f2937;
+      --border: #374151;
+      --text: #f9fafb;
+      --muted: #9ca3af;
+      --accent: #e20074;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .card {
+      max-width: 520px;
+      margin: 0 auto;
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 22px;
+      padding: 18px;
+      box-shadow: 0 18px 45px rgba(0,0,0,.25);
+    }
+    h1 { margin: 0 0 4px; font-size: 24px; line-height: 1.15; }
+    .subtitle { margin: 0 0 18px; color: var(--muted); font-size: 14px; line-height: 1.45; }
+    label { display: block; margin: 14px 0 6px; color: #d1d5db; font-size: 14px; font-weight: 600; }
+    select, input {
+      width: 100%;
+      padding: 13px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--input);
+      color: var(--text);
+      font-size: 16px;
+      outline: none;
+    }
+    select:focus, input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(226,0,116,.18); }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .route-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+    .preset {
+      border: 1px solid var(--border);
+      background: #172036;
+      color: var(--text);
+      padding: 10px;
+      border-radius: 12px;
+      font-weight: 700;
+    }
+    .hint { margin-top: 14px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .error {
+      display: none;
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(239,68,68,.12);
+      border: 1px solid rgba(239,68,68,.35);
+      color: #fecaca;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    .submit {
+      width: 100%;
+      margin-top: 18px;
+      border: 0;
+      border-radius: 16px;
+      padding: 15px 16px;
+      background: var(--accent);
+      color: white;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .submit:active, .preset:active { transform: translateY(1px); }
+    .small { font-size: 12px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>✈️ Ryanair letenka</h1>
+    <p class="subtitle">
+      Vyber trasu a dátumy. n8n vyhľadá najlacnejšiu obojsmernú kombináciu v okne ±1 deň.
+    </p>
+
+    <div class="route-buttons">
+      <button class="preset" onclick="setRoute('BTS','ALC')">BTS → ALC</button>
+      <button class="preset" onclick="setRoute('VIE','ALC')">VIE → ALC</button>
+      <button class="preset" onclick="setRoute('BTS','STN')">BTS → STN</button>
+      <button class="preset" onclick="setRoute('VIE','PMI')">VIE → PMI</button>
+    </div>
+
+    <label for="origin">Odkiaľ</label>
+    <select id="origin">
+      <option value="BTS">Bratislava - BTS</option>
+      <option value="VIE">Viedeň - VIE</option>
+      <option value="BUD">Budapešť - BUD</option>
+      <option value="PRG">Praha - PRG</option>
+    </select>
+
+    <label for="destination">Kam</label>
+    <select id="destination">
+      <option value="ALC">Alicante - ALC</option>
+      <option value="BCN">Barcelona - BCN</option>
+      <option value="PMI">Palma de Mallorca - PMI</option>
+      <option value="AGP">Malaga - AGP</option>
+      <option value="STN">London Stansted - STN</option>
+      <option value="DUB">Dublin - DUB</option>
+      <option value="BGY">Milan Bergamo - BGY</option>
+    </select>
+
+    <div class="grid">
+      <div>
+        <label for="outboundDate">Dátum odletu</label>
+        <input id="outboundDate" type="date" />
+      </div>
+      <div>
+        <label for="returnDate">Dátum návratu</label>
+        <input id="returnDate" type="date" />
+      </div>
+    </div>
+
+    <label for="flexDays">Flexibilita</label>
+    <select id="flexDays">
+      <option value="0">presný dátum</option>
+      <option value="1" selected>±1 deň</option>
+      <option value="2">±2 dni</option>
+    </select>
+
+    <label for="maxPrice">Maximálna cena spolu, voliteľné</label>
+    <input id="maxPrice" type="number" min="1" step="1" placeholder="napr. 150" />
+
+    <div id="error" class="error"></div>
+
+    <button class="submit" onclick="submitForm()">Vyhľadať najlacnejšiu letenku</button>
+
+    <p class="hint">
+      Výsledok príde späť ako Telegram správa. Cena z interného Ryanair endpointu je orientačná, pred kúpou ju over priamo na webe Ryanair.
+    </p>
+
+    <p class="small">
+      Payload sa odosiela cez Telegram.WebApp.sendData() do tvojho bota.
+    </p>
+  </main>
+
+  <script>
+    const tg = window.Telegram?.WebApp;
+
+    if (tg) {
+      tg.ready();
+      tg.expand();
+
+      if (tg.themeParams?.bg_color) {
+        document.documentElement.style.setProperty("--bg", tg.themeParams.bg_color);
+      }
+      if (tg.themeParams?.button_color) {
+        document.documentElement.style.setProperty("--accent", tg.themeParams.button_color);
+      }
+    }
+
+    const today = new Date();
+    const tomorrow = new Date();
+    tomorrow.setDate(today.getDate() + 1);
+
+    function yyyyMmDd(date) {
+      return date.toISOString().slice(0, 10);
+    }
+
+    document.getElementById("outboundDate").min = yyyyMmDd(today);
+    document.getElementById("returnDate").min = yyyyMmDd(tomorrow);
+
+    function setRoute(origin, destination) {
+      document.getElementById("origin").value = origin;
+      document.getElementById("destination").value = destination;
+    }
+
+    function showError(message) {
+      const el = document.getElementById("error");
+      el.textContent = message;
+      el.style.display = "block";
+    }
+
+    function clearError() {
+      const el = document.getElementById("error");
+      el.textContent = "";
+      el.style.display = "none";
+    }
+
+    function submitForm() {
+      clearError();
+
+      const payload = {
+        type: "ryanair_search",
+        origin: document.getElementById("origin").value,
+        destination: document.getElementById("destination").value,
+        outboundDate: document.getElementById("outboundDate").value,
+        returnDate: document.getElementById("returnDate").value,
+        flexDays: Number(document.getElementById("flexDays").value),
+        alertTotalPriceMax: Number(document.getElementById("maxPrice").value || 999)
+      };
+
+      if (!payload.outboundDate || !payload.returnDate) {
+        showError("Vyber dátum odletu aj dátum návratu.");
+        return;
+      }
+
+      if (payload.origin === payload.destination) {
+        showError("Letisko odletu a príletu nemôže byť rovnaké.");
+        return;
+      }
+
+      if (new Date(payload.returnDate) <= new Date(payload.outboundDate)) {
+        showError("Dátum návratu musí byť po dátume odletu.");
+        return;
+      }
+
+      if (!tg) {
+        showError("Táto stránka musí byť otvorená ako Telegram Mini App.");
+        return;
+      }
+
+      tg.sendData(JSON.stringify(payload));
+      tg.close();
+    }
+  </script>
+</body>
+</html>

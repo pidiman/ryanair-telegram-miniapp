@@ -1,0 +1,9 @@
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+README.md
+n8n-webapp-parser-snippet.js
+.DS_Store
+**/.DS_Store
